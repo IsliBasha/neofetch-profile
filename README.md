@@ -11,6 +11,22 @@
   <img src="./assets/github-profile-light.png" alt="Light Mode">
   <p>Light mode</p>
 </div>
+<div align="center">
+  <img src="./assets/color-light.png" alt="Light Mode">
+  <p>Color light mode</p>
+</div>
+<div align="center">
+  <img src="./assets/custom-color.png" alt="Light Mode">
+  <p>Custom colors</p>
+</div>
+<div align="center">
+  <img src="./assets/pikachu-dark.png" alt="Light Mode">
+  <p>Custom PNG</p>
+</div>
+<div align="center">
+  <img src="./assets/svg-dark.png" alt="Light Mode">
+  <p>SVG</p>
+</div>
 
 ## Features
 
