@@ -230,6 +230,7 @@ Use these variables in your config to pull data from GitHub automatically:
 | `imageColor` | Override image color: `"lightColor, darkColor"` |
 | `removeBackground` | `true` to auto-detect and remove background color |
 | `backgroundColor` | Custom card background: `"lightColor, darkColor"` |
+| `separatorColor` | Custom dots/separator color: `"lightColor, darkColor"` |
 | `sections` | Array of sections to display |
 | `sections[].title` | Section header (optional). Use `"{{username}}@github"` for the first section, `"- Section Name"` for others |
 | `sections[].titleColor` | Custom title colors: `{ "text": "light, dark", "line": "light, dark" }` |
@@ -316,6 +317,13 @@ Override colors with light/dark mode support. Format: `"lightModeColor, darkMode
 }
 ```
 
+**Separator/Dots Color:**
+```json
+{
+  "separatorColor": "#cccccc, #555555"
+}
+```
+
 **Image Color Override:**
 ```json
 {
@@ -353,11 +361,24 @@ Override colors with light/dark mode support. Format: `"lightModeColor, darkMode
 }
 ```
 
-**Supported color formats:**
+**Color format:**
+- Use `"lightColor, darkColor"` for different light/dark mode colors
+- Use `"color"` (no comma) for the same color in both modes
+
+**Supported color values:**
 - Hex: `#FF0000`, `#f00`
 - Named: `red`, `blue`, `green`
 - RGB/RGBA: `rgb(255,0,0)`, `rgba(0,0,0,0.5)`
 - HSL/HSLA: `hsl(0,100%,50%)`, `hsla(0,100%,50%,0.5)`
+
+**Examples:**
+```json
+{
+  "backgroundColor": "red",
+  "keyColor": "#4285F4",
+  "valueColor": "#333, #fff"
+}
+```
 
 ### Themed Examples
 

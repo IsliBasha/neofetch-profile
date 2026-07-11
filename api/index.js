@@ -673,6 +673,11 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
     ? (isLightTheme ? config.backgroundColor.light : config.backgroundColor.dark)
     : null;
 
+  // Check if separatorColor override is set (the dots)
+  const separatorColorOverride = config.separatorColor
+    ? (isLightTheme ? config.separatorColor.light : config.separatorColor.dark)
+    : null;
+
   let asciiLines;
   const isColored = asciiArt && asciiArt.colored;
 
@@ -843,7 +848,7 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
 .value { fill: ${colors.val}; }
 .addColor { fill: ${colors.add}; }
 .delColor { fill: ${colors.del}; }
-.cc { fill: ${colors.sep}; }
+.cc { fill: ${separatorColorOverride || colors.sep}; }
 text, tspan { white-space: pre; }
 </style>
 <rect width="985px" height="530px" fill="${backgroundColorOverride || colors.bg}" rx="15"/>
@@ -1103,6 +1108,11 @@ function processConfig(config, data) {
   // Process backgroundColor option (comma-separated: "lightColor, darkColor")
   if (config.backgroundColor && typeof config.backgroundColor === 'string') {
     processed.backgroundColor = parseColors(config.backgroundColor);
+  }
+
+  // Process separatorColor option (the dots between key and value)
+  if (config.separatorColor && typeof config.separatorColor === 'string') {
+    processed.separatorColor = parseColors(config.separatorColor);
   }
 
   return processed;
