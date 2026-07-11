@@ -65,8 +65,8 @@ GitHub users can choose dark or light themes. Use the `<picture>` element to aut
 ```html
 <a href="https://github.com/jeantimex/neofetch-profile">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&theme=github-dark">
-    <img alt="Neofetch Profile" src="https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&theme=github-light">
+    <source media="(prefers-color-scheme: dark)" srcset="https://neofetch-profile.vercel.app/api?username=[YOUR_USERNAME]&theme=github-dark">
+    <img alt="Neofetch Profile" src="https://neofetch-profile.vercel.app/api?username=[YOUR_USERNAME]&theme=github-light">
   </picture>
 </a>
 ```
@@ -77,8 +77,8 @@ GitHub users can choose dark or light themes. Use the `<picture>` element to aut
 <p align="center">
   <a href="https://github.com/jeantimex/neofetch-profile">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&theme=github-dark">
-      <img alt="Neofetch Profile" src="https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&theme=github-light">
+      <source media="(prefers-color-scheme: dark)" srcset="https://neofetch-profile.vercel.app/api?username=[YOUR_USERNAME]&theme=github-dark">
+      <img alt="Neofetch Profile" src="https://neofetch-profile.vercel.app/api?username=[YOUR_USERNAME]&theme=github-light">
     </picture>
   </a>
 </p>
@@ -92,8 +92,8 @@ When using a config URL, **URL-encode** the config parameter:
 <p align="center">
   <a href="https://github.com/jeantimex/neofetch-profile">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&theme=github-dark&config=https%3A%2F%2Fraw.githubusercontent.com%2FYOUR_USERNAME%2FYOUR_USERNAME%2Fmain%2Fneofetch.json">
-      <img alt="Neofetch Profile" src="https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&theme=github-light&config=https%3A%2F%2Fraw.githubusercontent.com%2FYOUR_USERNAME%2FYOUR_USERNAME%2Fmain%2Fneofetch.json">
+      <source media="(prefers-color-scheme: dark)" srcset="https://neofetch-profile.vercel.app/api?username=[YOUR_USERNAME]&theme=github-dark&config=[YOUR_CONFIG_JSON_FILE_URL]">
+      <img alt="Neofetch Profile" src="https://neofetch-profile.vercel.app/api?username=[YOUR_USERNAME]&theme=github-light&config=[YOUR_CONFIG_JSON_FILE_URL]">
     </picture>
   </a>
 </p>
