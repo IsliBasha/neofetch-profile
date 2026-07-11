@@ -224,6 +224,7 @@ Use these variables in your config to pull data from GitHub automatically:
 
 | Field | Description |
 |-------|-------------|
+| `image` | Custom image URL for ASCII art (optional). PNG transparency is preserved. |
 | `sections` | Array of sections to display |
 | `sections[].title` | Section header (optional). Use `"{{username}}@github"` for the first section, `"- Section Name"` for others |
 | `sections[].fields` | Array of `{ "key": "Label", "value": "Text or {{variable}}" }` objects |
@@ -231,6 +232,19 @@ Use these variables in your config to pull data from GitHub automatically:
 | `stats.title` | Stats section title (default: `"- GitHub Stats"`) |
 | `stats.enabled` | Set to `false` to hide stats section |
 | `stats.rows` | Array of row types to display |
+
+### Custom Image
+
+Use a custom image instead of your GitHub avatar:
+
+```json
+{
+  "image": "https://example.com/my-logo.png",
+  "sections": [...]
+}
+```
+
+PNG transparency is automatically preserved — transparent pixels render as spaces.
 
 ### Stats Row Types
 

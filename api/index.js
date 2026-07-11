@@ -30,37 +30,64 @@ const THEMES = {
 const ASCII_CHARS = ' .`"^-+*o()[]{}?#%@M';
 
 // Convert avatar image to ASCII art (matching browser algorithm)
-async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38) {
+async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTransparency = false) {
   try {
     const image = await Jimp.read(avatarUrl);
+
+    // For PNGs with transparency, crop to bounding box of non-transparent pixels first
+    if (respectTransparency) {
+      let minX = image.width, minY = image.height, maxX = 0, maxY = 0;
+      let hasOpaquePixels = false;
+
+      for (let y = 0; y < image.height; y++) {
+        for (let x = 0; x < image.width; x++) {
+          const color = image.getPixelColor(x, y);
+          const a = color & 0xFF;
+          if (a >= 128) {
+            hasOpaquePixels = true;
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+
+      // Crop to bounding box if we found opaque pixels
+      if (hasOpaquePixels && (minX > 0 || minY > 0 || maxX < image.width - 1 || maxY < image.height - 1)) {
+        const cropW = maxX - minX + 1;
+        const cropH = maxY - minY + 1;
+        image.crop({ x: minX, y: minY, w: cropW, h: cropH });
+      }
+    }
 
     // Characters are ~0.55 width/height ratio (Consolas/Monaco at 16px)
     const charAspect = 0.55;
     const imgAspect = image.width / image.height;
 
-    // Calculate dimensions to fill space, preserving aspect ratio
+    // Calculate dimensions to fit the image as large as possible while keeping aspect ratio
+    // Try fitting to height first
     let height = maxHeight;
     let width = Math.round(height * imgAspect / charAspect);
 
-    // If too wide, crop to fit maxWidth (center crop)
+    // If too wide, fit to width instead
     if (width > maxWidth) {
       width = maxWidth;
-      // Calculate crop area to center the image horizontally
-      const targetImgAspect = (width * charAspect) / height;
-      const cropWidth = Math.round(image.height * targetImgAspect);
-      const cropX = Math.floor((image.width - cropWidth) / 2);
-      image.crop({ x: cropX, y: 0, w: cropWidth, h: image.height });
+      height = Math.round(width * charAspect / imgAspect);
     }
 
-    // Resize to final dimensions
+    // Resize to final dimensions (no cropping, just scale to fit)
     image.resize({ w: width, h: height });
 
-    // Calculate average luminance to determine if we should invert
+    // Calculate average luminance to determine if we should invert (only for opaque pixels)
     let lumaTotal = 0;
     let pixelCount = 0;
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const color = image.getPixelColor(x, y);
+        const a = color & 0xFF;
+        // Skip transparent pixels for luminance calculation
+        if (respectTransparency && a < 128) continue;
         const r = (color >> 24) & 0xFF;
         const g = (color >> 16) & 0xFF;
         const b = (color >> 8) & 0xFF;
@@ -68,19 +95,30 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38) {
         pixelCount++;
       }
     }
-    const avgLuma = lumaTotal / pixelCount;
+    const avgLuma = pixelCount > 0 ? lumaTotal / pixelCount : 128;
     const shouldInvert = avgLuma < 128; // Invert if image is mostly dark
 
     const lines = [];
     const contrast = 1.2;
 
+    // Calculate horizontal padding to center the image
+    const padLeft = Math.floor((maxWidth - width) / 2);
+    const leftPadding = ' '.repeat(padLeft);
+
     for (let y = 0; y < height; y++) {
-      let line = '';
+      let line = leftPadding;
       for (let x = 0; x < width; x++) {
         const color = image.getPixelColor(x, y);
         const r = (color >> 24) & 0xFF;
         const g = (color >> 16) & 0xFF;
         const b = (color >> 8) & 0xFF;
+        const a = color & 0xFF;
+
+        // If transparent and we're respecting transparency, use space
+        if (respectTransparency && a < 128) {
+          line += ' ';
+          continue;
+        }
 
         // Calculate luminance
         let luma = 0.299 * r + 0.587 * g + 0.114 * b;
@@ -101,7 +139,17 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38) {
       lines.push(line);
     }
 
-    return lines;
+    // Add vertical padding to center the image
+    const padTop = Math.floor((maxHeight - height) / 2);
+    const emptyLine = ' '.repeat(maxWidth);
+    const paddedLines = [];
+
+    for (let i = 0; i < padTop; i++) {
+      paddedLines.push(emptyLine);
+    }
+    paddedLines.push(...lines);
+
+    return paddedLines;
   } catch (error) {
     console.error('Failed to convert avatar:', error);
     return null;
@@ -673,6 +721,11 @@ function processConfig(config, data) {
     })
   };
 
+  // Process image URL if provided
+  if (config.image) {
+    processed.image = replaceTemplateVars(config.image, data);
+  }
+
   return processed;
 }
 
@@ -718,11 +771,15 @@ export default async function handler(req, res) {
     // Process config to replace template variables
     config = processConfig(config, data);
 
-    // Convert avatar to ASCII art, fall back to default if it fails
+    // Determine which image to use for ASCII art
+    const imageUrl = config.image || data.avatarUrl;
+    const isPng = imageUrl && imageUrl.toLowerCase().endsWith('.png');
+
+    // Convert image to ASCII art, fall back to default if it fails
     let asciiArt = DEFAULT_ASCII;
     let isCustomAscii = false;
-    if (data.avatarUrl) {
-      const converted = await avatarToAscii(data.avatarUrl);
+    if (imageUrl) {
+      const converted = await avatarToAscii(imageUrl, 25, 38, isPng);
       if (converted) {
         asciiArt = converted;
         isCustomAscii = true;
