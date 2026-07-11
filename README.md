@@ -224,14 +224,32 @@ Use these variables in your config to pull data from GitHub automatically:
 
 | Field | Description |
 |-------|-------------|
-| `image` | Custom image URL for ASCII art (optional). PNG transparency is preserved. |
+| `image` | Custom image URL for ASCII art (optional). Supports PNG, WebP, AVIF, GIF, SVG. |
+| `coloredImage` | `true` to render ASCII with original image colors |
+| `imageScale` | Scale factor: `0` = no image, `0.5` = half size, `1` = full size (default), `2` = 2x zoom |
+| `imageColor` | Override image color: `"lightColor, darkColor"` |
+| `removeBackground` | `true` to auto-detect and remove background color |
+| `backgroundColor` | Custom card background: `"lightColor, darkColor"` |
 | `sections` | Array of sections to display |
 | `sections[].title` | Section header (optional). Use `"{{username}}@github"` for the first section, `"- Section Name"` for others |
-| `sections[].fields` | Array of `{ "key": "Label", "value": "Text or {{variable}}" }` objects |
+| `sections[].titleColor` | Custom title colors: `{ "text": "light, dark", "line": "light, dark" }` |
+| `sections[].fields` | Array of field objects (see Field Options below) |
 | `stats` | GitHub Stats section configuration (optional) |
 | `stats.title` | Stats section title (default: `"- GitHub Stats"`) |
+| `stats.titleColor` | Custom stats title colors: `{ "text": "light, dark", "line": "light, dark" }` |
 | `stats.enabled` | Set to `false` to hide stats section |
 | `stats.rows` | Array of row types to display |
+
+### Field Options
+
+Each field in `sections[].fields` supports:
+
+| Field | Description |
+|-------|-------------|
+| `key` | Label text (required) |
+| `value` | Value text or template variable (required) |
+| `keyColor` | Custom key color: `"lightColor, darkColor"` |
+| `valueColor` | Custom value color: `"lightColor, darkColor"` |
 
 ### Custom Image
 
@@ -244,7 +262,141 @@ Use a custom image instead of your GitHub avatar:
 }
 ```
 
-PNG transparency is automatically preserved — transparent pixels render as spaces.
+Supported formats: **PNG**, **WebP**, **AVIF**, **GIF**, **SVG**
+
+Transparency is automatically preserved — transparent pixels render as spaces.
+
+### Colored ASCII Art
+
+Render the image with its original colors:
+
+```json
+{
+  "image": "https://example.com/pikachu.png",
+  "coloredImage": true
+}
+```
+
+### Image Scaling
+
+Control the image size with `imageScale`:
+
+```json
+{
+  "imageScale": 0.5
+}
+```
+
+| Value | Effect |
+|-------|--------|
+| `0` | No image (empty space) |
+| `0.5` | Half size, centered |
+| `1` | Full size (default) |
+| `2` | 2x zoom (crops to center) |
+
+### Background Removal
+
+Auto-detect and remove solid background colors:
+
+```json
+{
+  "image": "https://example.com/logo.png",
+  "removeBackground": true
+}
+```
+
+### Custom Colors
+
+Override colors with light/dark mode support. Format: `"lightModeColor, darkModeColor"`
+
+**Card Background:**
+```json
+{
+  "backgroundColor": "#ffffff, #1a1a2e"
+}
+```
+
+**Image Color Override:**
+```json
+{
+  "imageColor": "#333333, #00ff00"
+}
+```
+
+**Section Title Colors:**
+```json
+{
+  "sections": [
+    {
+      "title": "{{username}}@github",
+      "titleColor": {
+        "text": "#1A73E8, #4285F4",
+        "line": "#5F6368, #9AA0A6"
+      },
+      "fields": [...]
+    }
+  ]
+}
+```
+
+**Field Colors:**
+```json
+{
+  "fields": [
+    {
+      "key": "Name",
+      "value": "{{name}}",
+      "keyColor": "#EA4335, #EA4335",
+      "valueColor": "#202124, #E8EAED"
+    }
+  ]
+}
+```
+
+**Supported color formats:**
+- Hex: `#FF0000`, `#f00`
+- Named: `red`, `blue`, `green`
+- RGB/RGBA: `rgb(255,0,0)`, `rgba(0,0,0,0.5)`
+- HSL/HSLA: `hsl(0,100%,50%)`, `hsla(0,100%,50%,0.5)`
+
+### Themed Examples
+
+**Pikachu Theme** (yellow/red/brown):
+```json
+{
+  "image": "https://example.com/pikachu.png",
+  "coloredImage": true,
+  "sections": [
+    {
+      "title": "{{username}}@github",
+      "titleColor": { "text": "#CC9900, #FFD700", "line": "#8B4513, #D4A574" },
+      "fields": [
+        { "key": "Name", "value": "{{name}}", "keyColor": "#CC9900, #FFC107", "valueColor": "#5D4037, #FFEB3B" }
+      ]
+    }
+  ]
+}
+```
+
+**Google Theme** (blue/red/yellow/green):
+```json
+{
+  "image": "https://example.com/marker.svg",
+  "coloredImage": true,
+  "sections": [
+    {
+      "title": "{{username}}@github",
+      "titleColor": { "text": "#1A73E8, #4285F4", "line": "#5F6368, #9AA0A6" },
+      "fields": [
+        { "key": "Name", "value": "{{name}}", "keyColor": "#1A73E8, #4285F4", "valueColor": "#202124, #E8EAED" },
+        { "key": "Location", "value": "{{location}}", "keyColor": "#EA4335, #EA4335", "valueColor": "#202124, #E8EAED" },
+        { "key": "Created", "value": "{{created}}", "keyColor": "#FBBC04, #FBBC04", "valueColor": "#202124, #E8EAED" },
+        { "key": "Uptime", "value": "{{uptime}}", "keyColor": "#34A853, #34A853", "valueColor": "#202124, #E8EAED" }
+      ]
+    }
+  ]
+}
+```
 
 ### Stats Row Types
 
