@@ -1,6 +1,6 @@
 <div align="center">
   <h1 style="font-size: 28px; margin: 10px 0;">GitHub Neofetch Profile</h1>
-  <p>Generate a retro terminal-style stats card for your GitHub profile README — just like [neofetch](https://github.com/dylanaraps/neofetch), but for GitHub!</p>
+  <p>Generate a retro terminal-style stats card for your GitHub profile README — just like <a href="https://github.com/dylanaraps/neofetch">Neofetch</a>, but for GitHub!</p>
 </div>
 
 <div align="center">
