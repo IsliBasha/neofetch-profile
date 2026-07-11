@@ -84,6 +84,21 @@ GitHub users can choose dark or light themes. Use the `<picture>` element to aut
 </p>
 ```
 
+### With Custom Config
+
+When using a config URL, **URL-encode** the config parameter:
+
+```html
+<p align="center">
+  <a href="https://github.com/jeantimex/neofetch-profile">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&theme=github-dark&config=https%3A%2F%2Fraw.githubusercontent.com%2FYOUR_USERNAME%2FYOUR_USERNAME%2Fmain%2Fneofetch.json">
+      <img alt="Neofetch Profile" src="https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&theme=github-light&config=https%3A%2F%2Fraw.githubusercontent.com%2FYOUR_USERNAME%2FYOUR_USERNAME%2Fmain%2Fneofetch.json">
+    </picture>
+  </a>
+</p>
+```
+
 ## Parameters
 
 | Parameter | Description | Default |
@@ -101,9 +116,11 @@ https://neofetch-profile.vercel.app/api?username=jeantimex
 # Light theme
 https://neofetch-profile.vercel.app/api?username=jeantimex&theme=github-light
 
-# With custom config
-https://neofetch-profile.vercel.app/api?username=jeantimex&config=https://raw.githubusercontent.com/jeantimex/jeantimex/main/neofetch.json
+# With custom config (URL-encoded for GitHub README)
+https://neofetch-profile.vercel.app/api?username=jeantimex&config=https%3A%2F%2Fraw.githubusercontent.com%2Fjeantimex%2Fjeantimex%2Fmain%2Fneofetch.json
 ```
+
+> **Tip:** Use [urlencoder.org](https://www.urlencoder.org/) to encode your config URL.
 
 ## Custom Configuration
 
@@ -170,8 +187,10 @@ https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_USERNAME/main/neofetch.json
 
 ### Step 3: Add Config Parameter
 
+**Important:** URL-encode the config URL for GitHub README compatibility.
+
 ```markdown
-![Neofetch Stats](https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&config=https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_USERNAME/main/neofetch.json)
+![Neofetch Stats](https://neofetch-profile.vercel.app/api?username=YOUR_USERNAME&config=https%3A%2F%2Fraw.githubusercontent.com%2FYOUR_USERNAME%2FYOUR_USERNAME%2Fmain%2Fneofetch.json)
 ```
 
 ### Template Variables
