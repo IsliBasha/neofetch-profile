@@ -668,6 +668,11 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
     ? (isLightTheme ? config.imageColor.light : config.imageColor.dark)
     : null;
 
+  // Check if backgroundColor override is set
+  const backgroundColorOverride = config.backgroundColor
+    ? (isLightTheme ? config.backgroundColor.light : config.backgroundColor.dark)
+    : null;
+
   let asciiLines;
   const isColored = asciiArt && asciiArt.colored;
 
@@ -841,7 +846,7 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
 .cc { fill: ${colors.sep}; }
 text, tspan { white-space: pre; }
 </style>
-<rect width="985px" height="530px" fill="${colors.bg}" rx="15"/>
+<rect width="985px" height="530px" fill="${backgroundColorOverride || colors.bg}" rx="15"/>
 <text x="${asciiX}" y="30" fill="${imageColorOverride || colors.ascii}"${textAnchor}>
 ${asciiLines}
 </text>
@@ -1000,10 +1005,25 @@ function replaceTemplateVars(str, data) {
 function processConfig(config, data) {
   const processed = { sections: [] };
 
-  // Helper to parse comma-separated colors
+  // Helper to parse comma-separated colors (handles rgba() values)
   const parseColors = (colorStr) => {
     if (!colorStr || typeof colorStr !== 'string') return null;
-    const colors = colorStr.split(',').map(c => c.trim());
+    // Split on comma NOT inside parentheses (to handle rgba/hsla)
+    const colors = [];
+    let current = '';
+    let parenDepth = 0;
+    for (const char of colorStr) {
+      if (char === '(') parenDepth++;
+      else if (char === ')') parenDepth--;
+      else if (char === ',' && parenDepth === 0) {
+        colors.push(current.trim());
+        current = '';
+        continue;
+      }
+      current += char;
+    }
+    if (current.trim()) colors.push(current.trim());
+
     return {
       light: colors[0] || null,
       dark: colors[1] || colors[0] || null
@@ -1077,11 +1097,12 @@ function processConfig(config, data) {
 
   // Process imageColor option (comma-separated: "lightColor, darkColor")
   if (config.imageColor && typeof config.imageColor === 'string') {
-    const colors = config.imageColor.split(',').map(c => c.trim());
-    processed.imageColor = {
-      light: colors[0] || null,
-      dark: colors[1] || colors[0] || null  // Fall back to first color if only one provided
-    };
+    processed.imageColor = parseColors(config.imageColor);
+  }
+
+  // Process backgroundColor option (comma-separated: "lightColor, darkColor")
+  if (config.backgroundColor && typeof config.backgroundColor === 'string') {
+    processed.backgroundColor = parseColors(config.backgroundColor);
   }
 
   return processed;
