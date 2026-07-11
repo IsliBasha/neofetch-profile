@@ -773,13 +773,15 @@ export default async function handler(req, res) {
 
     // Determine which image to use for ASCII art
     const imageUrl = config.image || data.avatarUrl;
-    const isPng = imageUrl && imageUrl.toLowerCase().endsWith('.png');
+    // Formats that support transparency: PNG, WebP, AVIF, GIF
+    const transparentFormats = ['.png', '.webp', '.avif', '.gif'];
+    const hasTransparency = imageUrl && transparentFormats.some(ext => imageUrl.toLowerCase().endsWith(ext));
 
     // Convert image to ASCII art, fall back to default if it fails
     let asciiArt = DEFAULT_ASCII;
     let isCustomAscii = false;
     if (imageUrl) {
-      const converted = await avatarToAscii(imageUrl, 25, 38, isPng);
+      const converted = await avatarToAscii(imageUrl, 25, 38, hasTransparency);
       if (converted) {
         asciiArt = converted;
         isCustomAscii = true;
