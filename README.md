@@ -343,7 +343,42 @@ Shift the image crop position with `imageOffsetX` and `imageOffsetY`:
 | `"25%"` | Shift 25% of crop dimensions |
 | `-50` | Shift in opposite direction |
 
-Offsets are relative to the crop area (most useful with `imageScale > 1`). Positive X shifts right, positive Y shifts down.
+Offsets are relative to the grid size. Positive X shifts right, positive Y shifts down.
+
+### Render Pipeline
+
+Understanding how images are processed helps you get the best results:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  1. LOAD         Load image (PNG, WebP, AVIF, GIF, SVG)         │
+├─────────────────────────────────────────────────────────────────┤
+│  2. REMOVE BG    If removeBackground: true, detect and remove   │
+│                  solid background color (keeps original size)   │
+├─────────────────────────────────────────────────────────────────┤
+│  3. CROP         For transparent images: crop to bounding box   │
+│                  of opaque pixels (removes transparent padding) │
+├─────────────────────────────────────────────────────────────────┤
+│  4. CONTAIN      Fit image in 38x25 character grid, maintain    │
+│                  aspect ratio, center both horizontally and     │
+│                  vertically (no cropping, image fits entirely)  │
+├─────────────────────────────────────────────────────────────────┤
+│  5. SCALE        Apply imageScale multiplier from center        │
+│                  (>1 = zoom in, <1 = zoom out)                  │
+├─────────────────────────────────────────────────────────────────┤
+│  6. OFFSET       Shift image position by imageOffsetX/Y         │
+├─────────────────────────────────────────────────────────────────┤
+│  7. ASCII        Convert each pixel to ASCII character with     │
+│                  color (if coloredImage: true)                  │
+├─────────────────────────────────────────────────────────────────┤
+│  8. FINAL CROP   Crop to final 38x25 character grid             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Key behaviors:**
+- **Transparent PNGs**: Transparent padding is automatically cropped so your content fills the grid
+- **removeBackground**: Only removes background color, does NOT crop the image
+- **Scale + Offset**: Use `imageScale > 1` to zoom in, then `imageOffsetX/Y` to pan around
 
 ### Custom Colors
 
