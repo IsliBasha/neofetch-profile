@@ -290,33 +290,8 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
 }
 
 // Default ASCII art (fallback)
-const DEFAULT_ASCII = [
-  "           g@M%@%%@N%Nw,,                   ",
-  "        ,M*|`||*%gNM=]mM%g||%N,             ",
-  "       p!``  '! |''` '''|||jhlj%w           ",
-  "     ,@L `    ,,        ''!`|j%M]%M         ",
-  "    ]j'` .,wp@pw,    `.     ''''|%Wg       ",
-  "  /{||]@@@@@@@@@pp.             |||||      ",
-  " '` ']@@@@@@@@@@@@@@p     , ,'''` `        ",
-  "  , :]%%@@@@@%%%%%%k%h '*||mkr     *       ",
-  "  '  j%M`      |jkk'   ~nrn=|i    ;`       ",
-  "   !  jrr*^`             `\"!  L'':!   ",
-  "    j  lp;,.  ,/ @@    ,;\\\\nmy \"  ,~   ",
-  "   i r @@@@mmHM @@@@ `^****M*,p ;,         ",
-  "   | ]@@@@HHH]g@M%%%%%H,jmgpmb%  j         ",
-  "    ;;%%%%%k%@[,.n|;.;j%%k|%k%%',[         ",
-  "     H|%%k%%%j%k||,;;j;!!'|%ij}]@          ",
-  "     \"djjmkL,\"\"]][,,,,wwxw;|#kjk` ",
-  "       %;%km%%%%M%M|%%jkkii|||[            ",
-  "        kjj%%kkkl|!||||||j|||\"        ",
-  "         |jm%H@@@b%%kkmk%i|!,[             ",
-  "         @p|j%%%%jkk|||j*'`;j[             ",
-  "        ]@@@g|'''`'''  ` ,;j%k             ",
-  "        @@@@@mgmp;,,,,:;jj%%k%             ",
-  "       @@@@@@@@%%kgki!|jjjj%k%@ .          ",
-  ". ^['' %@@@@HH%b%k{illljkjj%%%% ; `,.      ",
-  "=[' ` . %HH%%%%%H@gkilljjj%kk%\".   `'i"
-];
+// Empty ASCII fallback (38 chars x 25 lines)
+const DEFAULT_ASCII = Array(25).fill(' '.repeat(38));
 
 // Constants for alignment (same as client-side)
 const ROW_CHAR_LENGTH = 60;
