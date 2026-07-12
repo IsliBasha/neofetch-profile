@@ -243,6 +243,8 @@ Use these variables in your config to pull data from GitHub automatically:
 | `image` | Custom image URL for ASCII art (optional). Supports PNG, WebP, AVIF, GIF, SVG. |
 | `coloredImage` | `true` to render ASCII with original image colors |
 | `imageScale` | Scale factor: `0` = no image, `0.5` = half size, `1` = full size (default), `2` = 2x zoom |
+| `imageOffsetX` | Horizontal offset: number, `"50px"`, or `"25%"` |
+| `imageOffsetY` | Vertical offset: number, `"50px"`, or `"25%"` |
 | `imageColor` | Override image color: `"lightColor, darkColor"` |
 | `removeBackground` | `true` to auto-detect and remove background color |
 | `backgroundColor` | Custom card background: `"lightColor, darkColor"` |
@@ -321,6 +323,27 @@ Auto-detect and remove solid background colors:
   "removeBackground": true
 }
 ```
+
+### Image Offset
+
+Shift the image crop position with `imageOffsetX` and `imageOffsetY`:
+
+```json
+{
+  "imageScale": 2,
+  "imageOffsetX": "20%",
+  "imageOffsetY": -50
+}
+```
+
+| Value | Description |
+|-------|-------------|
+| `50` | Shift 50 pixels |
+| `"50px"` | Shift 50 pixels |
+| `"25%"` | Shift 25% of crop dimensions |
+| `-50` | Shift in opposite direction |
+
+Offsets are relative to the crop area (most useful with `imageScale > 1`). Positive X shifts right, positive Y shifts down.
 
 ### Custom Colors
 

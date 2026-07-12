@@ -35,52 +35,62 @@ function rgbToHex(r, g, b) {
   return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
 }
 
-// Convert avatar image to ASCII art (matching browser algorithm)
-async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTransparency = false, colored = false, imageScale = 1, removeBackground = false) {
-  // Store original dimensions for final padding
-  const originalMaxWidth = maxWidth;
-  const originalMaxHeight = maxHeight;
+// Helper to parse offset value (supports "10px", "50%", or just numbers)
+// For ASCII grid: percentage is relative to grid dimension, px is scaled (10px ≈ 1 char)
+function parseOffset(value, dimension) {
+  if (value === undefined || value === null) return 0;
+  if (typeof value === 'number') return Math.round(value);
+  if (typeof value !== 'string') return 0;
+
+  value = value.trim();
+  if (value.endsWith('%')) {
+    const percent = parseFloat(value) / 100;
+    return Math.round(dimension * percent);
+  }
+  if (value.endsWith('px')) {
+    // Scale px to character units (10px ≈ 1 character)
+    const px = parseInt(value, 10) || 0;
+    return Math.round(px / 10);
+  }
+  // Plain number = character units
+  return Math.round(parseInt(value, 10) || 0);
+}
+
+// Convert avatar image to ASCII art
+// Pipeline: Load -> Contain -> Scale -> Offset -> ASCII -> Crop
+async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTransparency = false, colored = false, imageScale = 1, removeBackground = false, offsetX = 0, offsetY = 0) {
+  const gridWidth = maxWidth;
+  const gridHeight = maxHeight;
 
   // Handle imageScale = 0 (don't render)
   if (imageScale <= 0) {
     if (colored) {
-      const emptyLine = Array(originalMaxWidth).fill({ char: ' ', color: null });
-      return { colored: true, lines: Array(originalMaxHeight).fill(null).map(() => [...emptyLine]) };
+      const emptyLine = Array(gridWidth).fill({ char: ' ', color: null });
+      return { colored: true, lines: Array(gridHeight).fill(null).map(() => [...emptyLine]) };
     }
-    return Array(originalMaxHeight).fill(' '.repeat(originalMaxWidth));
-  }
-
-  // For scale < 1: reduce target dimensions (zoom out)
-  if (imageScale < 1) {
-    maxWidth = Math.round(maxWidth * imageScale);
-    maxHeight = Math.round(maxHeight * imageScale);
+    return Array(gridHeight).fill(' '.repeat(gridWidth));
   }
 
   try {
+    // STEP 1: Load image (full size including transparent areas)
     let image;
     const isSvg = avatarUrl.toLowerCase().endsWith('.svg');
 
     if (isSvg) {
-      // Fetch SVG and convert to PNG using sharp
-      // Render at a size appropriate for ASCII conversion (SVG viewBox is coordinates, not pixels)
       const response = await fetch(avatarUrl);
       const svgBuffer = Buffer.from(await response.arrayBuffer());
-      // Render SVG at 300 DPI for good detail, then let our sizing logic handle it
-      const pngBuffer = await sharp(svgBuffer, { density: 300 })
-        .png()
-        .toBuffer();
+      const pngBuffer = await sharp(svgBuffer, { density: 300 }).png().toBuffer();
       image = await Jimp.read(pngBuffer);
     } else {
       image = await Jimp.read(avatarUrl);
     }
 
-    // Remove background by detecting corner colors and making similar pixels transparent
+    // Remove background if requested
     if (removeBackground) {
       const w = image.width;
       const h = image.height;
-      const tolerance = 30; // Color difference tolerance
+      const tolerance = 30;
 
-      // Sample corners to detect background color (take average of corners)
       const corners = [
         image.getPixelColor(0, 0),
         image.getPixelColor(w - 1, 0),
@@ -88,53 +98,38 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
         image.getPixelColor(w - 1, h - 1)
       ];
 
-      // Extract RGB from corners and find the most common background color
       const cornerColors = corners.map(c => ({
         r: (c >> 24) & 0xFF,
         g: (c >> 16) & 0xFF,
         b: (c >> 8) & 0xFF
       }));
 
-      // Use the average of corner colors as the background
       const bgColor = {
         r: Math.round(cornerColors.reduce((sum, c) => sum + c.r, 0) / 4),
         g: Math.round(cornerColors.reduce((sum, c) => sum + c.g, 0) / 4),
         b: Math.round(cornerColors.reduce((sum, c) => sum + c.b, 0) / 4)
       };
 
-      // Make pixels similar to background transparent
       for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
           const pixel = image.getPixelColor(x, y);
           const r = (pixel >> 24) & 0xFF;
           const g = (pixel >> 16) & 0xFF;
           const b = (pixel >> 8) & 0xFF;
-
-          // Calculate color distance
           const diff = Math.sqrt(
             Math.pow(r - bgColor.r, 2) +
             Math.pow(g - bgColor.g, 2) +
             Math.pow(b - bgColor.b, 2)
           );
-
           if (diff <= tolerance) {
-            // Make pixel transparent (set alpha to 0)
             image.setPixelColor(0x00000000, x, y);
           }
         }
       }
     }
 
-    // For scale > 1: crop to center portion of image (zoom in)
-    if (imageScale > 1) {
-      const cropW = Math.round(image.width / imageScale);
-      const cropH = Math.round(image.height / imageScale);
-      const cropX = Math.round((image.width - cropW) / 2);
-      const cropY = Math.round((image.height - cropH) / 2);
-      image.crop({ x: cropX, y: cropY, w: cropW, h: cropH });
-    }
-
-    // For PNGs with transparency, crop to bounding box of non-transparent pixels first
+    // STEP 1.5: For images with transparency, crop to bounding box of opaque pixels
+    // This removes transparent padding so the actual content fills the grid
     if (respectTransparency) {
       let minX = image.width, minY = image.height, maxX = 0, maxY = 0;
       let hasOpaquePixels = false;
@@ -153,7 +148,6 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
         }
       }
 
-      // Crop to bounding box if we found opaque pixels
       if (hasOpaquePixels && (minX > 0 || minY > 0 || maxX < image.width - 1 || maxY < image.height - 1)) {
         const cropW = maxX - minX + 1;
         const cropH = maxY - minY + 1;
@@ -161,204 +155,130 @@ async function avatarToAscii(avatarUrl, maxHeight = 25, maxWidth = 38, respectTr
       }
     }
 
-    // Characters are ~0.5 width/height ratio (most monospace fonts)
+    // STEP 2: CONTAIN mode - fit image in grid area, keep aspect ratio, center
+    // Grid is gridWidth x gridHeight characters
+    // Each character is visually charAspect wide by 1 tall (charAspect = 0.5)
+    // So grid visual area is (gridWidth * charAspect) x gridHeight = 19 x 25
     const charAspect = 0.5;
-
-    // Calculate the target area's visual aspect ratio
-    const targetAspect = (maxWidth / maxHeight) * charAspect;
+    const gridVisualWidth = gridWidth * charAspect;  // 38 * 0.5 = 19
+    const gridVisualHeight = gridHeight;              // 25
 
     // Image aspect ratio
     const imgAspect = image.width / image.height;
-    const charRatio = imgAspect / charAspect; // W_char / H_char needed to preserve aspect
 
-    let width, height;
-
-    // Decide mode based on image aspect vs target aspect:
-    // - Tall/narrow images (imgAspect < targetAspect): use CONTAIN mode (fit inside, no crop)
-    // - Square/wide images (imgAspect >= targetAspect): use COVER mode (fill area, crop excess)
-
-    if (imgAspect < targetAspect) {
-      // CONTAIN mode for tall images (like the marker SVG)
-      height = maxHeight;
-      width = Math.round(height * charRatio);
-
-      if (width > maxWidth) {
-        width = maxWidth;
-        height = Math.round(width / charRatio);
-      }
+    // Calculate how to fit image in grid visual area (contain mode)
+    // Scale factor to fit entirely within grid
+    let visualWidth, visualHeight;
+    if (imgAspect > gridVisualWidth / gridVisualHeight) {
+      // Image is wider - fit by width
+      visualWidth = gridVisualWidth;
+      visualHeight = gridVisualWidth / imgAspect;
     } else {
-      // COVER mode for square/wide images (like GitHub avatar)
-      width = maxWidth;
-      height = Math.round(width / charRatio);
-
-      if (height < maxHeight) {
-        height = maxHeight;
-        width = Math.round(height * charRatio);
-      }
+      // Image is taller - fit by height
+      visualHeight = gridVisualHeight;
+      visualWidth = gridVisualHeight * imgAspect;
     }
 
-    // Ensure minimum dimensions
-    width = Math.max(1, width);
-    height = Math.max(1, height);
+    // Convert visual dimensions to character dimensions
+    let baseCharWidth = visualWidth / charAspect;   // visual width -> char columns
+    let baseCharHeight = visualHeight;               // visual height -> char rows
 
-    // Resize image
-    image.resize({ w: width, h: height });
+    // STEP 3: Apply scale (from center, no crop)
+    const scaledCharWidth = Math.round(baseCharWidth * imageScale);
+    const scaledCharHeight = Math.round(baseCharHeight * imageScale);
 
-    // For cover mode, center crop to target dimensions
-    if (imgAspect >= targetAspect && (width > maxWidth || height > maxHeight)) {
-      const cropX = Math.max(0, Math.floor((width - maxWidth) / 2));
-      const cropY = Math.max(0, Math.floor((height - maxHeight) / 2));
-      image.crop({ x: cropX, y: cropY, w: Math.min(width, maxWidth), h: Math.min(height, maxHeight) });
-      width = image.width;
-      height = image.height;
-    }
+    // Resize image to character grid dimensions (1 pixel per character)
+    image.resize({ w: scaledCharWidth, h: scaledCharHeight });
 
-    // Calculate average luminance to determine if we should invert (only for opaque pixels)
-    let lumaTotal = 0;
+    // STEP 4 & 5: Apply offset and prepare for ASCII conversion
+    const parsedOffsetX = parseOffset(offsetX, gridWidth);
+    const parsedOffsetY = parseOffset(offsetY, gridHeight);
+
+    // Calculate where to place the image (centered + offset)
+    const imgStartX = Math.round((gridWidth - scaledCharWidth) / 2) + parsedOffsetX;
+    const imgStartY = Math.round((gridHeight - scaledCharHeight) / 2) + parsedOffsetY;
+
+    // STEP 6 & 7: Convert to ASCII and crop to grid
+    // We iterate over the grid and sample from the image at the corresponding position
+    const contrast = 1.2;
+    const ASCII_CHARS = ' `.-\':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@';
+
+    // Calculate average luminance for inversion decision
+    let totalLuma = 0;
     let pixelCount = 0;
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for (let y = 0; y < image.height; y++) {
+      for (let x = 0; x < image.width; x++) {
         const color = image.getPixelColor(x, y);
         const a = color & 0xFF;
-        // Skip transparent pixels for luminance calculation
-        if (respectTransparency && a < 128) continue;
-        const r = (color >> 24) & 0xFF;
-        const g = (color >> 16) & 0xFF;
-        const b = (color >> 8) & 0xFF;
-        lumaTotal += 0.299 * r + 0.587 * g + 0.114 * b;
-        pixelCount++;
-      }
-    }
-    const avgLuma = pixelCount > 0 ? lumaTotal / pixelCount : 128;
-    const shouldInvert = avgLuma < 128; // Invert if image is mostly dark
-
-    const lines = [];
-    const contrast = 1.2;
-
-    // Calculate horizontal padding to center the image (only for transparent images)
-    const padLeft = respectTransparency ? Math.floor((maxWidth - width) / 2) : 0;
-
-    for (let y = 0; y < height; y++) {
-      const lineData = colored ? [] : '';
-      let line = colored ? lineData : '';
-
-      // Add left padding (only for transparent images)
-      if (padLeft > 0) {
-        if (colored) {
-          for (let i = 0; i < padLeft; i++) {
-            lineData.push({ char: ' ', color: null });
-          }
-        } else {
-          line = ' '.repeat(padLeft);
+        if (a >= 128) {
+          const r = (color >> 24) & 0xFF;
+          const g = (color >> 16) & 0xFF;
+          const b = (color >> 8) & 0xFF;
+          totalLuma += 0.299 * r + 0.587 * g + 0.114 * b;
+          pixelCount++;
         }
       }
+    }
+    const avgLuma = pixelCount > 0 ? totalLuma / pixelCount : 128;
+    const shouldInvert = avgLuma < 128;
 
-      for (let x = 0; x < width; x++) {
-        const pixelColor = image.getPixelColor(x, y);
-        const r = (pixelColor >> 24) & 0xFF;
-        const g = (pixelColor >> 16) & 0xFF;
-        const b = (pixelColor >> 8) & 0xFF;
-        const a = pixelColor & 0xFF;
+    let lines = [];
 
-        // If transparent and we're respecting transparency, use space
-        if (respectTransparency && a < 128) {
+    for (let gridY = 0; gridY < gridHeight; gridY++) {
+      let lineData = colored ? [] : '';
+
+      for (let gridX = 0; gridX < gridWidth; gridX++) {
+        // Calculate corresponding position in the image
+        const imgX = gridX - imgStartX;
+        const imgY = gridY - imgStartY;
+
+        // Check if this grid position maps to a valid image pixel
+        if (imgX < 0 || imgX >= image.width || imgY < 0 || imgY >= image.height) {
+          // Outside image bounds - render as space
           if (colored) {
             lineData.push({ char: ' ', color: null });
           } else {
-            line += ' ';
+            lineData += ' ';
           }
           continue;
         }
 
-        // Calculate luminance
-        let luma = 0.299 * r + 0.587 * g + 0.114 * b;
+        // Sample the image
+        const color = image.getPixelColor(imgX, imgY);
+        const r = (color >> 24) & 0xFF;
+        const g = (color >> 16) & 0xFF;
+        const b = (color >> 8) & 0xFF;
+        const a = color & 0xFF;
 
-        // Apply contrast for character selection
+        // Transparent pixel - render as space
+        if (a < 128) {
+          if (colored) {
+            lineData.push({ char: ' ', color: null });
+          } else {
+            lineData += ' ';
+          }
+          continue;
+        }
+
+        // Calculate luminance and map to ASCII character
+        let luma = 0.299 * r + 0.587 * g + 0.114 * b;
         let adjustedLuma = (luma - 128) * contrast + 128;
         adjustedLuma = Math.max(0, Math.min(255, adjustedLuma));
-
-        // Invert if needed (so we get dark chars on light bg or vice versa)
         if (shouldInvert) {
           adjustedLuma = 255 - adjustedLuma;
         }
 
-        // Map to ASCII character
         const charIndex = Math.floor(adjustedLuma / 255 * (ASCII_CHARS.length - 1));
         const char = ASCII_CHARS[charIndex];
 
         if (colored) {
           lineData.push({ char, color: rgbToHex(r, g, b) });
         } else {
-          line += char;
+          lineData += char;
         }
       }
 
-      lines.push(colored ? lineData : line);
-    }
-
-    // Add vertical padding to center the image (only for transparent images)
-    const padTop = respectTransparency ? Math.floor((maxHeight - height) / 2) : 0;
-
-    if (padTop > 0) {
-      if (colored) {
-        const emptyLine = Array(maxWidth).fill({ char: ' ', color: null });
-        const paddedLines = [];
-        for (let i = 0; i < padTop; i++) {
-          paddedLines.push([...emptyLine]);
-        }
-        paddedLines.push(...lines);
-        lines = paddedLines;
-      } else {
-        const emptyLine = ' '.repeat(maxWidth);
-        const paddedLines = [];
-        for (let i = 0; i < padTop; i++) {
-          paddedLines.push(emptyLine);
-        }
-        paddedLines.push(...lines);
-        lines = paddedLines;
-      }
-    }
-
-    // Add padding for scaled images to center in original dimensions
-    if (imageScale < 1) {
-      const scalePadLeft = Math.floor((originalMaxWidth - maxWidth) / 2);
-      const scalePadTop = Math.floor((originalMaxHeight - lines.length) / 2);
-
-      if (colored) {
-        // Add horizontal padding to each line
-        const paddedLines = lines.map(line => {
-          const leftPad = Array(scalePadLeft).fill({ char: ' ', color: null });
-          const rightPad = Array(originalMaxWidth - maxWidth - scalePadLeft).fill({ char: ' ', color: null });
-          return [...leftPad, ...line, ...rightPad];
-        });
-        // Add vertical padding
-        const emptyLine = Array(originalMaxWidth).fill({ char: ' ', color: null });
-        const finalLines = [];
-        for (let i = 0; i < scalePadTop; i++) {
-          finalLines.push([...emptyLine]);
-        }
-        finalLines.push(...paddedLines);
-        while (finalLines.length < originalMaxHeight) {
-          finalLines.push([...emptyLine]);
-        }
-        return { colored: true, lines: finalLines };
-      } else {
-        // Add horizontal padding to each line
-        const leftPadStr = ' '.repeat(scalePadLeft);
-        const rightPadStr = ' '.repeat(originalMaxWidth - maxWidth - scalePadLeft);
-        const paddedLines = lines.map(line => leftPadStr + line + rightPadStr);
-        // Add vertical padding
-        const emptyLine = ' '.repeat(originalMaxWidth);
-        const finalLines = [];
-        for (let i = 0; i < scalePadTop; i++) {
-          finalLines.push(emptyLine);
-        }
-        finalLines.push(...paddedLines);
-        while (finalLines.length < originalMaxHeight) {
-          finalLines.push(emptyLine);
-        }
-        return finalLines;
-      }
+      lines.push(lineData);
     }
 
     return colored ? { colored: true, lines } : lines;
@@ -1100,6 +1020,11 @@ function processConfig(config, data) {
   // Process removeBackground option (auto-detect and remove background color)
   processed.removeBackground = config.removeBackground === true;
 
+  // Process imageOffsetX/Y options (shift the image crop position)
+  // Accepts: number (pixels), "10px", "50%", or negative values
+  processed.imageOffsetX = config.imageOffsetX ?? 0;
+  processed.imageOffsetY = config.imageOffsetY ?? 0;
+
   // Process imageColor option (comma-separated: "lightColor, darkColor")
   if (config.imageColor && typeof config.imageColor === 'string') {
     processed.imageColor = parseColors(config.imageColor);
@@ -1168,6 +1093,8 @@ export default async function handler(req, res) {
     const useColoredAscii = config.coloredImage === true;
     const imageScale = typeof config.imageScale === 'number' ? config.imageScale : 1;
     const removeBackground = config.removeBackground === true;
+    const imageOffsetX = config.imageOffsetX ?? 0;
+    const imageOffsetY = config.imageOffsetY ?? 0;
     // If removing background, treat as transparent for bounding box/centering
     const respectTransparency = hasTransparency || removeBackground;
 
@@ -1175,7 +1102,7 @@ export default async function handler(req, res) {
     let asciiArt = DEFAULT_ASCII;
     let isCustomAscii = false;
     if (imageUrl) {
-      const converted = await avatarToAscii(imageUrl, 25, 38, respectTransparency, useColoredAscii, imageScale, removeBackground);
+      const converted = await avatarToAscii(imageUrl, 25, 38, respectTransparency, useColoredAscii, imageScale, removeBackground, imageOffsetX, imageOffsetY);
       if (converted) {
         asciiArt = converted;
         isCustomAscii = true;
