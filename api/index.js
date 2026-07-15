@@ -987,6 +987,11 @@ function processConfig(config, data) {
     processed.image = replaceTemplateVars(config.image, data);
   }
 
+  // Process custom ASCII art (literal text lines, bypasses image-to-ASCII conversion)
+  if (Array.isArray(config.asciiArt) && config.asciiArt.length > 0) {
+    processed.asciiArt = config.asciiArt.map(line => replaceTemplateVars(String(line), data));
+  }
+
   // Process coloredImage option (works for custom image or default GitHub avatar)
   processed.coloredImage = config.coloredImage === true;
 
@@ -1077,7 +1082,17 @@ export default async function handler(req, res) {
     // Convert image to ASCII art, fall back to default if it fails
     let asciiArt = DEFAULT_ASCII;
     let isCustomAscii = false;
-    if (imageUrl) {
+    if (Array.isArray(config.asciiArt) && config.asciiArt.length > 0) {
+      // Literal ASCII art supplied via config.asciiArt — skip image conversion entirely
+      const GRID_WIDTH = 38;
+      const GRID_HEIGHT = 25;
+      const lines = config.asciiArt.slice(0, GRID_HEIGHT).map(line =>
+        line.length > GRID_WIDTH ? line.slice(0, GRID_WIDTH) : line.padEnd(GRID_WIDTH, ' ')
+      );
+      while (lines.length < GRID_HEIGHT) lines.push(' '.repeat(GRID_WIDTH));
+      asciiArt = lines;
+      isCustomAscii = true;
+    } else if (imageUrl) {
       const converted = await avatarToAscii(imageUrl, 25, 38, respectTransparency, useColoredAscii, imageScale, removeBackground, imageOffsetX, imageOffsetY);
       if (converted) {
         asciiArt = converted;

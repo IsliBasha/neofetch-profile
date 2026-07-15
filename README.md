@@ -285,6 +285,48 @@ Supported formats: **PNG**, **WebP**, **AVIF**, **GIF**, **SVG**
 
 Transparency is automatically preserved — transparent pixels render as spaces.
 
+### Custom ASCII Art (Fork Addition)
+
+Skip image conversion entirely and supply your own hand-typed ASCII art:
+
+```json
+{
+  "asciiArt": [
+    "  ___ ",
+    " |_ _|",
+    "  | | ",
+    " |___|"
+  ],
+  "sections": [...]
+}
+```
+
+- Each string is one row, rendered left-to-right exactly as written (template variables like `{{username}}` are still substituted).
+- The grid is a fixed **38 columns × 25 rows**: longer lines are truncated, shorter lines are padded with spaces, and missing rows are filled with blank lines.
+- Takes priority over `image` — if both are set, `asciiArt` wins.
+- Color follows the same `imageColor` override as image-derived ASCII (monochrome by default).
+
+### Custom ASCII Art (Fork Addition)
+
+Skip image conversion entirely and supply your own hand-typed ASCII art:
+
+```json
+{
+  "asciiArt": [
+    "  ___ ",
+    " |_ _|",
+    "  | | ",
+    " |___|"
+  ],
+  "sections": [...]
+}
+```
+
+- Each string is one row, rendered left-to-right exactly as written (template variables like `{{username}}` are still substituted).
+- The grid is a fixed **38 columns × 25 rows**: longer lines are truncated, shorter lines are padded with spaces, and missing rows are filled with blank lines.
+- Takes priority over `image` — if both are set, `asciiArt` wins.
+- Color follows the same `imageColor` override as image-derived ASCII (monochrome by default).
+
 ### Colored ASCII Art
 
 Render the image with its original colors:
