@@ -769,7 +769,7 @@ text, tspan { white-space: pre; }
 <rect width="985px" height="${svgHeight}px" fill="${backgroundColorOverride || colors.bg}"/>
 <rect x="0" y="0" width="985" height="${TITLEBAR_HEIGHT}" fill="${titlebarColors.bg}"/>
 <line x1="0" y1="${TITLEBAR_HEIGHT}" x2="985" y2="${TITLEBAR_HEIGHT}" stroke="${titlebarColors.border}" stroke-width="1"/>
-<text x="492.5" y="${btnY + 5}" text-anchor="middle" font-size="13" fill="${titlebarColors.text}">${escapeXml(titlebarTitle)}</text>
+<text x="492.5" y="${btnY + 5}" text-anchor="middle" font-size="15" fill="${titlebarColors.text}">${escapeXml(titlebarTitle)}</text>
 <g stroke="${titlebarColors.control}" fill="none" stroke-width="1.4" stroke-linecap="round">
 <line x1="${minX - 5}" y1="${btnY + 4}" x2="${minX + 5}" y2="${btnY + 4}"/>
 <rect x="${maxX - 5}" y="${btnY - 5}" width="10" height="10"/>
