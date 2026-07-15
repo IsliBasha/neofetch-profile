@@ -1108,7 +1108,7 @@ export default async function handler(req, res) {
     const svg = generateSvgWithConfig(data, config, asciiArt, isCustomAscii, theme);
 
     // Set cache headers (cache for 4 hours, stale-while-revalidate for 24 hours)
-    res.setHeader('Cache-Control', 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=3600');
     res.setHeader('Content-Type', 'image/svg+xml');
     res.status(200).send(svg);
   } catch (error) {
