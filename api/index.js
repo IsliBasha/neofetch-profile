@@ -732,8 +732,13 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
     }
   }
 
+  // Card height must fit both the fixed 25-row ASCII grid and however many
+  // detail/stats rows the config produced (y is the cursor after the last row)
+  const asciiGridHeight = 30 + 25 * 20;
+  const svgHeight = Math.max(asciiGridHeight, y + 20);
+
   const svg = `<?xml version='1.0' encoding='UTF-8'?>
-<svg xmlns="http://www.w3.org/2000/svg" font-family="Consolas,Monaco,monospace" width="985px" height="530px" font-size="16px">
+<svg xmlns="http://www.w3.org/2000/svg" font-family="Consolas,Monaco,monospace" width="985px" height="${svgHeight}px" font-size="16px">
 <style>
 @font-face {
   src: local('Consolas'), local('Monaco'), local('monospace');
@@ -747,7 +752,7 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
 .cc { fill: ${separatorColorOverride || colors.sep}; }
 text, tspan { white-space: pre; }
 </style>
-<rect width="985px" height="530px" fill="${backgroundColorOverride || colors.bg}" rx="15"/>
+<rect width="985px" height="${svgHeight}px" fill="${backgroundColorOverride || colors.bg}" rx="15"/>
 <text x="${asciiX}" y="30" fill="${imageColorOverride || colors.ascii}"${textAnchor}>
 ${asciiLines}
 </text>
