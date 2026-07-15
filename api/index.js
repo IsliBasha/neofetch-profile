@@ -574,6 +574,13 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
     ? (isLightTheme ? config.separatorColor.light : config.separatorColor.dark)
     : null;
 
+  // Linux-style window title bar (GTK/KDE convention: flat controls, right-aligned)
+  const TITLEBAR_HEIGHT = 40;
+  const BASE_Y = 30 + TITLEBAR_HEIGHT;
+  const titlebarColors = isLightTheme
+    ? { bg: '#eaeef2', border: '#d0d7de', text: '#57606a', control: '#57606a' }
+    : { bg: '#21262d', border: '#30363d', text: '#8b949e', control: '#8b949e' };
+
   let asciiLines;
   const isColored = asciiArt && asciiArt.colored;
 
@@ -581,20 +588,20 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
     // Use single color override for all characters
     if (isColored) {
       asciiLines = asciiArt.lines.map((lineData, i) => {
-        const y = 30 + i * 20;
+        const y = BASE_Y + i * 20;
         const lineText = lineData.map(({ char }) => escapeXml(char)).join('');
         return `<tspan x="${asciiX}" y="${y}">${lineText}</tspan>`;
       }).join('\n');
     } else {
       asciiLines = asciiArt.map((line, i) => {
-        const y = 30 + i * 20;
+        const y = BASE_Y + i * 20;
         return `<tspan x="${asciiX}" y="${y}">${escapeXml(line)}</tspan>`;
       }).join('\n');
     }
   } else if (isColored) {
     // Colored ASCII art - each character has its own color
     asciiLines = asciiArt.lines.map((lineData, i) => {
-      const y = 30 + i * 20;
+      const y = BASE_Y + i * 20;
       let lineContent = '';
       let currentColor = null;
       let buffer = '';
@@ -628,13 +635,13 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
   } else {
     // Monochrome ASCII art
     asciiLines = asciiArt.map((line, i) => {
-      const y = 30 + i * 20;
+      const y = BASE_Y + i * 20;
       return `<tspan x="${asciiX}" y="${y}">${escapeXml(line)}</tspan>`;
     }).join('\n');
   }
 
   // Build detail rows from config
-  let y = 30;
+  let y = BASE_Y;
   const lineHeight = 20;
   let detailLines = [];
 
@@ -734,8 +741,13 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
 
   // Card height must fit both the fixed 25-row ASCII grid and however many
   // detail/stats rows the config produced (y is the cursor after the last row)
-  const asciiGridHeight = 30 + 25 * 20;
+  const asciiGridHeight = BASE_Y + 25 * 20;
   const svgHeight = Math.max(asciiGridHeight, y + 20);
+
+  const titlebarTitle = 'isli@github: ~/neofetch';
+  const btnY = TITLEBAR_HEIGHT / 2;
+  const btnCenters = [957, 921, 885]; // close, maximize, minimize (right to left)
+  const [closeX, maxX, minX] = btnCenters;
 
   const svg = `<?xml version='1.0' encoding='UTF-8'?>
 <svg xmlns="http://www.w3.org/2000/svg" font-family="Consolas,Monaco,monospace" width="985px" height="${svgHeight}px" font-size="16px">
@@ -752,13 +764,25 @@ function generateSvgWithConfig(data, config, asciiArt, isCustomAscii = false, th
 .cc { fill: ${separatorColorOverride || colors.sep}; }
 text, tspan { white-space: pre; }
 </style>
-<rect width="985px" height="${svgHeight}px" fill="${backgroundColorOverride || colors.bg}" rx="15"/>
-<text x="${asciiX}" y="30" fill="${imageColorOverride || colors.ascii}"${textAnchor}>
+<clipPath id="cardClip"><rect width="985" height="${svgHeight}" rx="15"/></clipPath>
+<g clip-path="url(#cardClip)">
+<rect width="985px" height="${svgHeight}px" fill="${backgroundColorOverride || colors.bg}"/>
+<rect x="0" y="0" width="985" height="${TITLEBAR_HEIGHT}" fill="${titlebarColors.bg}"/>
+<line x1="0" y1="${TITLEBAR_HEIGHT}" x2="985" y2="${TITLEBAR_HEIGHT}" stroke="${titlebarColors.border}" stroke-width="1"/>
+<text x="492.5" y="${btnY + 5}" text-anchor="middle" font-size="13" fill="${titlebarColors.text}">${escapeXml(titlebarTitle)}</text>
+<g stroke="${titlebarColors.control}" fill="none" stroke-width="1.4" stroke-linecap="round">
+<line x1="${minX - 5}" y1="${btnY + 4}" x2="${minX + 5}" y2="${btnY + 4}"/>
+<rect x="${maxX - 5}" y="${btnY - 5}" width="10" height="10"/>
+<line x1="${closeX - 5}" y1="${btnY - 5}" x2="${closeX + 5}" y2="${btnY + 5}"/>
+<line x1="${closeX - 5}" y1="${btnY + 5}" x2="${closeX + 5}" y2="${btnY - 5}"/>
+</g>
+<text x="${asciiX}" y="${BASE_Y}" fill="${imageColorOverride || colors.ascii}"${textAnchor}>
 ${asciiLines}
 </text>
-<text x="390" y="30" fill="${colors.text}">
+<text x="390" y="${BASE_Y}" fill="${colors.text}">
 ${detailLines.join('\n')}
 </text>
+</g>
 </svg>`;
 
   return svg;
